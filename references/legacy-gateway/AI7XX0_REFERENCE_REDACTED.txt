@@ -1,0 +1,503 @@
+# HISTORISCHE, SANITISIERTE LESEKOPIE — NICHT AUSFÜHREN!
+# Keine lauffähige Installationsversion; Platzhalter ersetzen ursprüngliche Benutzer/MAC/Passwort-Konstanten.
+# Originaldatei: AI7XX0.sh; SHA-256 steht in docs/SOURCE_MANIFEST.json.
+# Diese Datei dient ausschließlich der Codex-Analyse und darf nicht als Installer ausgeführt werden.
+#! /bin/bash
+
+#########################################################################################################################################
+#
+# AI7XX0_safe_upgrade.sh install Script 
+# Version 1.3 22.09.2025
+# FRIEDRICH AUTOMATION 2025
+# 	
+#########################################################################################################################################
+
+# Function -> wait for dpkg done
+wait_for_dpkg_lock() {
+  local MAX_WAIT=300
+  local WAIT=0
+
+  while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+    echo "dpkg ist gesperrt... warte (aktuell $WAIT Sekunden)"
+    sleep 5
+    WAIT=$((WAIT+5))
+    if [ "$WAIT" -ge "$MAX_WAIT" ]; then
+      echo "Timeout: dpkg bleibt gesperrt. Abbruch."
+      exit 1
+    fi
+  done
+}
+
+# Function -> Safe update an upgrade the OS
+safe_upgrade(){
+
+# Auf APT-Lock warten
+MAX_WAIT=300  # max. 5 Minuten warten
+WAIT=0
+
+while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+  echo "APT ist gesperrt... warte (aktuell $WAIT Sekunden)"
+  sleep 5
+  WAIT=$((WAIT+5))
+  if [ "$WAIT" -ge "$MAX_WAIT" ]; then
+    echo "Timeout: APT bleibt gesperrt. Abbruch."
+    exit 1
+  fi
+done
+
+echo "APT ist frei - fahre mit Update fort."
+
+apt-mark hold nvidia-l4t-kernel
+apt-mark hold nvidia-l4t-kernel-dtbs
+apt-mark hold nvidia-l4t-kernel-headers
+apt-mark hold nvidia-l4t-kernel-oot-headers
+apt-mark hold nvidia-l4t-kernel-oot-modules
+apt-mark hold nvidia-l4t-bootloader
+apt-mark hold nvidia-l4t-initrd
+apt-get update -y
+apt-get upgrade -y
+
+echo "Safe update upgrade done"
+
+}
+
+# Install docker Container Node-RED
+install_NodeRed(){
+docker run -d -p 1880:1880 \
+-v /home/$MOSQUITTO_USER/friedrich-projects/nodered_runtime:/data \
+-v /home/$MOSQUITTO_USER/friedrich-projects/workspace/nodered/projects:/data/projects \
+--name mynodered nodered/node-red:latest-debian
+
+echo "Docker Container 'mynodered' für $MOSQUITTO_USER gestartet."
+
+# Warten, damit settings.js geschrieben werden kann
+sleep 2
+
+# Setze Project-Modus auf enabled
+SETTINGS_FILE="/home/$MOSQUITTO_USER/friedrich-projects/nodered_runtime/settings.js"
+
+if [ -f "$SETTINGS_FILE" ]; then
+  if grep -q "enabled: false" "$SETTINGS_FILE"; then
+    sed -i 's/enabled: false/enabled: true/' "$SETTINGS_FILE"
+    echo "enabled: false wurde auf true gesetzt."
+  else
+    echo "Kein 'enabled: false' gefunden, möglicherweise schon aktiv."
+  fi
+else
+  echo "settings.js existiert noch nicht, Container war evtl. zu schnell wieder zu."
+fi
+
+# Container neu starten, damit Änderung wirksam wird
+docker stop mynodered
+docker start mynodered
+echo "Node-RED neu gestartet mit aktiviertem Projects-Modus."
+echo "Install NodeRed done!"
+}
+
+# The set -e command in Bash causes the script to be terminated immediately if a command with a non-zero return value (error) is executed.
+set -e
+
+# Error handling function
+error_exit() {
+
+echo "Error: A command has failed. Script is terminated."
+	
+# Output of FAILED in the console and switch to red
+echo
+echo
+echo
+echo
+echo
+echo -e "\e[31m#################################################"
+echo -e "\e[31m#                                               #"
+echo -e "\e[31m#  ███████╗ █████╗ ██╗██╗     ███████╗██████╗   #"
+echo -e "\e[31m#  ██╔════╝██╔══██╗██║██║     ██╔════╝██╔══██╗  #"
+echo -e "\e[31m#  █████╗  ███████║██║██║     █████╗  ██║  ██║  #"
+echo -e "\e[31m#  ██╔══╝  ██╔══██║██║██║     ██╔══╝  ██║  ██║  #"
+echo -e "\e[31m#  ██║     ██║  ██║██║███████╗███████╗██████╔╝  #"
+echo -e "\e[31m#  ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝   #"
+echo -e "\e[31m#                                               #"
+echo -e "\e[31m#################################################"
+echo -e "\e[0m"
+echo
+echo
+echo
+echo
+echo
+# Reset the color to default
+
+exit 1
+}
+
+# Set trap for errors
+trap 'error_exit' ERR
+
+# error code and a help guide
+if ! [ $(id -u) = 0 ] || [ "$1" = "-h" ]
+then
+
+	if ! [ $(id -u) = 0 ]
+	then
+		echo "Please execute this script with sudo!"
+	fi
+	
+	if [ "$1" = "-h" ]
+	then
+		echo "This script configures and installs the required software for an AI7XX0 gateway in the basic settings"
+	fi
+	
+	echo "Usage:"
+	echo "sudo AI7XX0 [-s] [AI7020] or [AI7100]"
+	echo "sudo AI7XX0 [-h]"
+	echo "[-s] = system"
+	echo "[-h] = help" 
+	
+	exit 1	
+fi
+
+#########################################################################################################################################
+# Software installation for all systems AI7xx0
+#########################################################################################################################################
+
+if [ "$1" = "-s" ] && ( [ "$2" = "AI7020" ] || [ "$2" = "AI7100" ] )
+then
+
+echo
+echo
+echo
+echo
+echo
+echo "###########################################################################################";
+echo "#                                                                                         #";
+echo "#              ███████╗██████╗ ██╗███████╗██████╗ ██████╗ ██╗ ██████╗██╗  ██╗             #";
+echo "#              ██╔════╝██╔══██╗██║██╔════╝██╔══██╗██╔══██╗██║██╔════╝██║  ██║             #";
+echo "#              █████╗  ██████╔╝██║█████╗  ██║  ██║██████╔╝██║██║     ███████║             #";
+echo "#              ██╔══╝  ██╔══██╗██║██╔══╝  ██║  ██║██╔══██╗██║██║     ██╔══██║             #";
+echo "#              ██║     ██║  ██║██║███████╗██████╔╝██║  ██║██║╚██████╗██║  ██║             #";
+echo "#              ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝             #";
+echo "#                                                                                         #";
+echo "#   █████╗ ██╗   ██╗████████╗ ██████╗ ███╗   ███╗ █████╗ ████████╗██╗ ██████╗ ███╗   ██╗  #";
+echo "#  ██╔══██╗██║   ██║╚══██╔══╝██╔═══██╗████╗ ████║██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║  #";
+echo "#  ███████║██║   ██║   ██║   ██║   ██║██╔████╔██║███████║   ██║   ██║██║   ██║██╔██╗ ██║  #";
+echo "#  ██╔══██║██║   ██║   ██║   ██║   ██║██║╚██╔╝██║██╔══██║   ██║   ██║██║   ██║██║╚██╗██║  #";
+echo "#  ██║  ██║╚██████╔╝   ██║   ╚██████╔╝██║ ╚═╝ ██║██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║  #";
+echo "#  ╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝  #";
+echo "#                                                                                         #";
+echo "###########################################################################################";
+echo
+echo
+echo
+echo
+echo
+
+# wait 3 seconds
+sleep 3
+
+#########################################################################################################################################
+# Variables for user name and password and MAC-Address
+# NOTE: please set correct values!
+# NOTE: The installation of the following software is required in SDK-Manager:
+# Jetson Linux:
+# - Jetson Linux image
+# - Flash Jetson Linux
+# Runtime Components:
+# - Additional Setups
+# - NVIDIA Container Runtime
+#########################################################################################################################################
+# MOSQUITTO_USER="<REDACTED_DEVICE_USER>"
+MOSQUITTO_USER="<REDACTED_DEVICE_USER>"
+MOSQUITTO_PASS="<REDACTED_LAB_PASSWORD>"
+MAC_ADDRESS_1="<REDACTED_MAC>"
+MAC_ADDRESS_2="<REDACTED_MAC>"
+#########################################################################################################################################
+
+# Variables for current (pwd), mosquitto and 70-persistent-net.rules file path 
+SCRIPTPATH=$(pwd)
+MOSQUITTO_PASSWD_FILE="/etc/mosquitto/passwd"
+MOSQUITTO_CONFIG_FILE="/etc/mosquitto/mosquitto.conf"
+TARGET_FILE="/etc/udev/rules.d/70-persistent-net.rules"
+
+# Projektverzeichnis mit Unterstruktur
+PROJECTS_DIR="/home/$MOSQUITTO_USER/friedrich-projects"
+mkdir -p "$PROJECTS_DIR/workspace"
+mkdir -p "$PROJECTS_DIR/workspace/project"
+mkdir -p "$PROJECTS_DIR/workspace/nodered"
+mkdir -p "$PROJECTS_DIR/workspace/nodered/projects"
+chown -R "$MOSQUITTO_USER:$MOSQUITTO_USER" "$PROJECTS_DIR"
+chmod -R 755 "$PROJECTS_DIR"
+echo "Projektstruktur $PROJECTS_DIR wurde angelegt und Benutzer $MOSQUITTO_USER zugewiesen."
+
+# Node-RED Runtime-Verzeichnis
+RUNTIME_DIR="/home/$MOSQUITTO_USER/friedrich-projects/nodered_runtime"
+mkdir -p "$RUNTIME_DIR"
+chown -R "$MOSQUITTO_USER:$MOSQUITTO_USER" "$RUNTIME_DIR"
+chmod -R 755 "$RUNTIME_DIR"
+echo "Runtime-Verzeichnis $RUNTIME_DIR wurde angelegt und Benutzer $MOSQUITTO_USER zugewiesen."
+
+# Safe update an upgrade the OS
+safe_upgrade
+
+# MAC-Adressen 70-persistent-net.rules created
+FILE_CONTENT=$(cat <<EOF
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="$MAC_ADDRESS_1", ATTR{dev_id}=="0x0", ATTR{type}=="1", KERNEL=="eth*", NAME="eth_0"
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="?*", ATTR{address}=="$MAC_ADDRESS_2", ATTR{dev_id}=="0x0", ATTR{type}=="1", KERNEL=="eth*", NAME="eth_1"
+EOF
+)
+
+echo "$FILE_CONTENT" > "$TARGET_FILE"
+echo "MAC-Adressen rules file in $TARGET_FILE created."
+
+# Install nvidia-jetpack
+wait_for_dpkg_lock
+sudo apt install nvidia-jetpack -y
+echo "install nvidia-jetpack done"
+
+# Install nano
+wait_for_dpkg_lock
+apt-get install nano
+echo "install nano done"	
+	
+# Install pip3 
+wait_for_dpkg_lock
+apt install python3-pip -y
+echo "install python3-pip done"		
+
+# Safe update an upgrade the OS
+safe_upgrade
+	
+# Install mosquitto and clients and secure the connection with a user and password
+# Note: the connection is not yet encrypted with certificates
+wait_for_dpkg_lock
+apt install -y mosquitto mosquitto-clients
+echo "install Mosquitto and Mosquitto clients done"
+
+# Create password file
+echo "Create password file for Mosquitto..."
+mosquitto_passwd -c -b $MOSQUITTO_PASSWD_FILE $MOSQUITTO_USER $MOSQUITTO_PASS
+
+# Ensure that 'allow_anonymous' is set to false and the password file is activated
+if ! grep -q "password_file" "$MOSQUITTO_CONFIG_FILE"; then
+    echo "Activate password file and deactivate anonymous connections..."
+    echo "password_file $MOSQUITTO_PASSWD_FILE" | tee -a "$MOSQUITTO_CONFIG_FILE"
+    echo "allow_anonymous false" | tee -a "$MOSQUITTO_CONFIG_FILE"
+else
+    echo "Password file and anonymous connections are already configured."
+fi
+
+# Ensure that the listener is set to 1883
+if ! grep -q "listener 1883" "$MOSQUITTO_CONFIG_FILE"; then
+    echo "Activate listener on port 1883..."
+    echo "listener 1883" | tee -a "$MOSQUITTO_CONFIG_FILE"
+else
+    echo "Listener on port 1883 is already configured."
+fi
+
+# Restart Mosquitto service
+echo "Restart Mosquitto to apply changes"
+systemctl restart mosquitto
+
+# Activate Mosquitto service
+echo "Activate Mosquitto for automatic start..."
+systemctl enable mosquitto
+
+# Install paho-mqtt
+pip3 install paho-mqtt
+echo "install paho-mqtt done"	
+
+# Safe update an upgrade the OS
+safe_upgrade
+
+# Install pyTorch
+# LINK: https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048
+wait_for_dpkg_lock
+apt-get install python3-pip libopenblas-base libopenmpi-dev libomp-dev -y
+pip3 install 'Cython<3'
+pip3 install numpy==1.23.5 $SCRIPTPATH/software/torch-2.5.0a0+872d972e41.nv24.08.17622132-cp310-cp310-linux_aarch64.whl
+echo "install pyTorch done"
+
+# Install cuSPARSELt A High-Performance CUDA Library for Sparse Matrix-Matrix Multiplication  
+# LINK: https://developer.nvidia.com/cusparselt-downloads?target_os=Linux&target_arch=aarch64-jetson&Compilation=Native&Distribution=Ubuntu&target_version=22.04&target_type=deb_network
+
+wait_for_dpkg_lock
+dpkg -i $SCRIPTPATH/software/cusparselt-local-tegra-repo-ubuntu2204-0.6.3_1.0-1_arm64.deb 
+cp /var/cusparselt-local-tegra-repo-ubuntu2204-0.6.3/cusparselt-*-keyring.gpg /usr/share/keyrings/
+wait_for_dpkg_lock
+apt-get update
+wait_for_dpkg_lock
+apt-get -y install libcusparselt0 libcusparselt-dev
+
+# Safe update an upgrade the OS
+safe_upgrade
+
+# Install torchvision
+# LINK: https://forums.developer.nvidia.com/t/pytorch-for-jetson/72048
+wait_for_dpkg_lock
+apt-get install libjpeg-dev zlib1g-dev libpython3-dev libopenblas-dev libavcodec-dev libavformat-dev libswscale-dev
+git clone --branch v0.20.0 https://github.com/pytorch/vision /usr/local/torchvision
+cd /usr/local/torchvision
+export BUILD_VERSION=0.20.0
+python3 setup.py install
+echo "install torchvision done"
+
+# Safe update an upgrade the OS
+safe_upgrade
+	
+#########################################################################################################################################
+# Software installation adapted to the system AI7020
+#########################################################################################################################################
+ 
+if [ "$2" = "AI7020" ]
+then
+	
+# Install docker Container Node-RED
+install_NodeRed
+
+# Install docker Container Portainer
+docker volume create portainer_data	
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always \
+-v /var/run/docker.sock:/var/run/docker.sock \
+-v portainer_data:/data \
+portainer/portainer-ce:latest
+echo "install docker portainer for ai7020 done"
+
+# Safe update an upgrade the OS
+safe_upgrade
+	
+echo "AI7020 System fully installed!"
+
+# Output of PASSED in the console and switch to green
+echo
+echo
+echo
+echo
+echo
+echo -e "\e[32m######################################################"
+echo -e "\e[32m#                                                    #"
+echo -e "\e[32m#  ██████╗  █████╗ ███████╗███████╗███████╗██████╗   #"
+echo -e "\e[32m#  ██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝██╔══██╗  #"
+echo -e "\e[32m#  ██████╔╝███████║███████╗███████╗█████╗  ██║  ██║  #"
+echo -e "\e[32m#  ██╔═══╝ ██╔══██║╚════██║╚════██║██╔══╝  ██║  ██║  #"
+echo -e "\e[32m#  ██║     ██║  ██║███████║███████║███████╗██████╔╝  #"
+echo -e "\e[32m#  ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═════╝   #"
+echo -e "\e[32m#                                                    #"
+echo -e "\e[32m######################################################"
+echo -e "\e[0m"
+echo
+echo
+echo
+echo
+echo
+# Reset the color to default
+
+# wait 10 seconds
+sleep 10
+
+# Turn off desktop and reboot
+systemctl set-default multi-user.target
+systemctl disable --now gdm3
+reboot
+
+exit 1
+fi
+	
+#########################################################################################################################################
+# Software installation adapted to the system AI7100
+#########################################################################################################################################
+
+if [ "$2" = "AI7100" ]
+then
+
+# Install docker Container Node-RED
+install_NodeRed
+
+# Install docker Container Portainer
+docker volume create portainer_data	
+docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always \
+-v /var/run/docker.sock:/var/run/docker.sock \
+-v portainer_data:/data \
+portainer/portainer-ce:latest
+echo "install docker portainer for ai7100 done"
+
+#Installation Basler Pylon
+wait_for_dpkg_lock
+apt install $SCRIPTPATH/software/pylon_8.0.1-16188-deb0_arm64.deb
+echo "install pylon for ai7100 done"
+
+#install pypylon
+pip3 install pypylon
+echo "install pypylon for ai7100 done"
+
+# Safe update an upgrade the OS
+safe_upgrade
+
+echo "AI7100 System fully installed!"
+
+# Output of PASSED in the console and switch to green
+echo
+echo
+echo
+echo
+echo
+echo -e "\e[32m######################################################"
+echo -e "\e[32m#                                                    #"
+echo -e "\e[32m#  ██████╗  █████╗ ███████╗███████╗███████╗██████╗   #"
+echo -e "\e[32m#  ██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝██╔══██╗  #"
+echo -e "\e[32m#  ██████╔╝███████║███████╗███████╗█████╗  ██║  ██║  #"
+echo -e "\e[32m#  ██╔═══╝ ██╔══██║╚════██║╚════██║██╔══╝  ██║  ██║  #"
+echo -e "\e[32m#  ██║     ██║  ██║███████║███████║███████╗██████╔╝  #"
+echo -e "\e[32m#  ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═════╝   #"
+echo -e "\e[32m#                                                    #"
+echo -e "\e[32m######################################################"
+echo -e "\e[0m"
+echo
+echo
+echo
+echo
+echo
+# Reset the color to default
+
+# wait 10 seconds
+sleep 10
+
+# Turn off desktop and reboot
+systemctl set-default multi-user.target
+systemctl disable --now gdm3
+reboot
+
+exit 1
+
+fi
+
+else
+
+echo "Parameters are missing or incorrect parameters have been specified!"
+
+# Output of FAILED in the console and switch to red
+echo
+echo
+echo
+echo
+echo
+echo -e "\e[31m#################################################"
+echo -e "\e[31m#                                               #"
+echo -e "\e[31m#  ███████╗ █████╗ ██╗██╗     ███████╗██████╗   #"
+echo -e "\e[31m#  ██╔════╝██╔══██╗██║██║     ██╔════╝██╔══██╗  #"
+echo -e "\e[31m#  █████╗  ███████║██║██║     █████╗  ██║  ██║  #"
+echo -e "\e[31m#  ██╔══╝  ██╔══██║██║██║     ██╔══╝  ██║  ██║  #"
+echo -e "\e[31m#  ██║     ██║  ██║██║███████╗███████╗██████╔╝  #"
+echo -e "\e[31m#  ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚═════╝   #"
+echo -e "\e[31m#                                               #"
+echo -e "\e[31m#################################################"
+echo -e "\e[0m"
+echo
+echo
+echo
+echo
+echo
+# Reset the color to default
+
+fi
+
+#########################################################################################################################################
+# END
+#########################################################################################################################################

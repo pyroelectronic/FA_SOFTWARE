@@ -1,0 +1,54 @@
+# Nicht in Git: externe NVIDIA-/Board-Support-Archive, Build- und Flash-Bäume
+/local-assets/
+/external-assets/
+/downloads/
+/cache/
+/tmp/
+/build/
+/dist/
+**/Linux_for_Tegra/
+**/kernel_out/
+**/rootfs/
+*.img
+*.img.raw
+*.qcow2
+*.vhdx
+*.iso
+*.tar
+*.tar.gz
+*.tar.xz
+*.7z
+*.zip
+*.whl
+*.deb
+*.engine
+*.plan
+*.pth
+*.pt
+*.onnx
+*.log
+# Environment/Runtime
+**/.venv/
+**/node_modules/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/runtime-data/
+**/runtime-logs/
+# Secret-Dateien, keine Klartext-Credentials in Git
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/secrets/
+# OS
+.DS_Store
+Thumbs.db
+
+# Weitere große BSP-Artefakte
+*.tbz2
+*.tar.bz2
+*.tar.zst
+*.tgz
+*.vsix

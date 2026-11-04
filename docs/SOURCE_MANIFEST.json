@@ -1,0 +1,65 @@
+[
+  {
+    "date": "2026-11-04",
+    "source_name": "AI7XX0.sh",
+    "size_bytes": 20371,
+    "sha256": "2929cbe2bae9da65799d999df5e175cabc957d64564ab1d8ce4bbaef0a7969ee",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "CHANGELOG.md",
+    "size_bytes": 1199,
+    "sha256": "06cebd548a10f0eb266bdd40ace717a0190fdca65046389f1a50cc78c9d0e5d8",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "torchtest.py",
+    "size_bytes": 1482,
+    "sha256": "d7106d3ac2c9bc7e8b5675f42d33ac64ffcb47f71329ca33cacf4e181e9cc9cf",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "ai7XX0_install_config_V1.0_36.4.3_V6.1.7z",
+    "size_bytes": 3914436,
+    "sha256": "761266823c7fb029595a8034c1c8bdcd7e90e14ed316141ec4aac2e0b957dcfd",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "src.zip",
+    "size_bytes": 5716,
+    "sha256": "c6c2b6d1711a830e3d59612b12b5e3aac826230fbf3a3ad635c20ef474ad0001",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "out.zip",
+    "size_bytes": 19333,
+    "sha256": "34d32fc0807fc492eecc7bf06c39f7cad4e8737566df0243a10488268ec8ba84",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "CHANGELOG(1).md",
+    "size_bytes": 3158,
+    "sha256": "1a88c0c76d3238731cf11d8cad3313f39dc2287c62f03dc459018bb94624cdee",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "Projektvorlagen.zip",
+    "size_bytes": 2876010,
+    "sha256": "d62b6b9b244e741dca81c4610b5613b296c391feede9d19a276c9955cbbda023",
+    "git_import": "NO - reference only"
+  },
+  {
+    "date": "2026-11-04",
+    "source_name": "Docker.zip",
+    "size_bytes": 759999,
+    "sha256": "f9e8a261c6b7e1d25b112e1754051ffa2c6c1f8f4096078dc8990f30a7820c4c",
+    "git_import": "NO - reference only"
+  }
+]
