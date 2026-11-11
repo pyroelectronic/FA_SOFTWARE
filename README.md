@@ -1,6 +1,6 @@
 # FA_SOFTWARE — zentraler technischer Arbeitsstand
 
-**Stand:** 2026-11-11 · **Status:** Gateway-Installer in Entwicklung; Teilfunktionen auf beiden Plattformen berichtet getestet, vollständige Abnahme offen.
+**Stand:** 2026-11-11 · **Status:** Paket A des Gateway-Installers auf beiden Plattformen hardwareseitig abgenommen; weiterer Installerumfang in Entwicklung.
 
 **Arbeitsrepository:** `pyroelectronic/FA_SOFTWARE`.
 
@@ -14,7 +14,7 @@
 4. Historische Analysegrundlagen bleiben unter `codex/01_GATEWAY_BESTAND.md` und `references/legacy-gateway/` erhalten. Fehlende Originale separat geschützt bereitstellen; keine Credentials, Originalarchive oder großen Buildbäume hinzufügen.
 5. Je einen gesondert freigegebenen Umsetzungsauftrag innerhalb des ausgewählten Pakets bearbeiten und lokal prüfen; erforderliche Detailentscheidungen vorher festlegen. Johannes führt Hardwaretests, Git-Commits und Veröffentlichung durch.
 
-**Aktueller Stand:** Das übergeordnete Installationskonzept ist nach den Dokumentationspräzisierungen freigegeben. Jetzt schließt Johannes Paket A mit dem vollständigen Gateway-Neustarttest auf beiden Plattformen ab; erst danach beginnt Paket B. Der spätere IgH-/EC100-Datenpfad bleibt das übergeordnete Integrationsziel von Issue #12 und wird in dieser Installerphase nicht implementiert oder vorbereitet. Das Friedrich-BSP wird separat entwickelt und vor der Softwareinstallation geflasht.
+**Aktueller Stand:** Das übergeordnete Installationskonzept ist freigegeben. Johannes hat Paket A am 11.11.2026 mit dem vollständigen Gateway-Neustarttest auf beiden Plattformen erfolgreich abgeschlossen. Paket B – BSP-Schutz und Hostvoraussetzungen – kann nun vorbereitet werden; seine offenen Detailentscheidungen bleiben gesondert freizugeben. Der spätere IgH-/EC100-Datenpfad bleibt das übergeordnete Integrationsziel von Issue #12 und wird in dieser Installerphase nicht implementiert oder vorbereitet. Das Friedrich-BSP wird separat entwickelt und vor der Softwareinstallation geflasht.
 
 ## Ordner und Zuständigkeiten
 

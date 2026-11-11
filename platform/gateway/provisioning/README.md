@@ -74,7 +74,7 @@ Der Harness führte den Node-RED-Funktionsteil des Installers mit isolierten Tes
 
 ## Korrektur der Docker-Bestandsprüfung, 11.11.2026
 
-In der ersten Rückmeldung vom 11.11.2026 berichtete Johannes auf AI7020 einen funktionierenden Node-RED-Betrieb und erhaltenes `FLOW1` nach Containerrestart. Der zweite Installerlauf scheiterte damals beim Zugriff auf `.Config.Cmd`. Nach der folgenden Korrektur wurden die Wiederholung und unveränderte Container-ID auf beiden Plattformen erfolgreich berichtet; der vollständige Gateway-Neustart bleibt offen.
+In der ersten Rückmeldung vom 11.11.2026 berichtete Johannes auf AI7020 einen funktionierenden Node-RED-Betrieb und erhaltenes `FLOW1` nach Containerrestart. Der zweite Installerlauf scheiterte damals beim Zugriff auf `.Config.Cmd`. Nach der folgenden Korrektur wurden die Wiederholung und unveränderte Container-ID auf beiden Plattformen erfolgreich berichtet. Der damals noch offene vollständige Gateway-Neustart ist inzwischen ebenfalls auf beiden Geräten bestanden; siehe Abschluss von Paket A unten.
 
 Ursache: Docker 29 lässt leere optionale Image-Config-Felder wie `Cmd`, `Entrypoint` und `WorkingDir` in der Inspect-Antwort weg. Die bisherige Vorlage verlangte diese Felder unmittelbar. Die beiden Abfragen lesen jetzt die Pflicht-ID und die gesamte `Config` als JSON. Der gemeinsame Vergleich behandelt fehlende, `null` und leere Standardwerte gleich; nichtleere Startbefehle, deren Reihenfolge, Arbeitsverzeichnis und Image-ID werden weiterhin strikt verglichen. Ungültige Metadaten führen zum Abbruch. [Offizielle Docker-Dokumentation](https://docs.docker.com/engine/deprecated/#emptynil-fields-in-image-config-from-inspect-api).
 
@@ -87,6 +87,12 @@ Geprüfter korrigierter Installer: SHA-256 `c9b0691de4c35d950de713ad1cfabfdb45cb
 
 Die früheren Stubs lieferten fertige Vergleichsstrings und bildeten die ausgelassenen Config-Felder nicht ab. Die neuen Prüfungen führen den tatsächlichen JSON-Vergleich mit diesen Feldausprägungen aus. Docker-API, Linux-Rechte und das echte Gateway waren in dieser lokalen Prüfung simuliert. Die anschließenden erfolgreichen Hardwaremeldungen beider Plattformen sind im [Projektstatus](../../../docs/PROJEKTSTATUS.md#gateway-provisionierung) dokumentiert. Der Rückfall der Korrektur betrifft nur die Skriptkopie; Containerkonfiguration und beide Datenverzeichnisse bleiben erhalten.
 
-Aktuell verbleibt für Paket A die vollständige Gateway-Neustartabnahme auf beiden Plattformen. Der jeweils nächste Schritt wird im [Projektstatus](../../../docs/PROJEKTSTATUS.md#gateway-provisionierung) geführt; der weitere technische Rahmen steht ausschließlich im [Installationskonzept](INSTALLATIONSKONZEPT.md).
+## Paket A abgeschlossen – Hardwareabnahme vom 11.11.2026
+
+Johannes hat den vollständigen Linux-Neustart auf AI7020-8 (Orin Nano) und AI7100-3 (Orin NX) erfolgreich durchgeführt. Docker und Node-RED starten automatisch; `mynodered` läuft ohne manuellen Start. `FLOW1`, `flows.json` und die übrigen Projektdateien bleiben erhalten, die Dateieigentümer weiterhin `friedrich`. Node-RED funktioniert nach dem Neustart auf beiden Plattformen. Für AI7020 ist zusätzlich ausdrücklich der Docker-Zustand `healthy` gemeldet; für AI7100 wurde kein eigener Health-Status übermittelt.
+
+Die bisherigen erfolgreichen Erstinstallations-, Wiederholungs- und Containerneustarttests bleiben gültig. **Paket A ist hardwareseitig abgenommen und abgeschlossen.** Diese Ergebnisse stammen aus Johannes' Rückmeldung; Codex hat keine Gatewaytests ausgeführt. Die Abnahme gilt für Paket A, nicht für den noch fehlenden Gesamtumfang des Laborprofils.
+
+Als nächster Schritt kann Paket B – BSP-Schutz und Hostvoraussetzungen – lesend vorbereitet werden. Offene technische Einzelentscheidungen bleiben gesondert freizugeben. Der aktuelle Nachweis und nächste Schritt stehen im [Projektstatus](../../../docs/PROJEKTSTATUS.md#gateway-provisionierung), der technische Rahmen im [Installationskonzept](INSTALLATIONSKONZEPT.md). Installer-Funktionen wurden für diesen Abschluss nicht geändert.
 
 Der bisherige `AI7XX0.sh`-Stand liegt als [historische Referenz](../../../references/legacy-gateway/README.md) vor.

@@ -6,4 +6,4 @@
 - `provisioning/`: schlanke, wiederholbare Host-Konfiguration; Geheimnisse separat.
 - `host-services/`: notwendige native Dienste wie IgH/EC100.
 
-Der zentrale [Installer](provisioning/install.sh) ist für das Laborprofil teilweise implementiert und auf beiden Plattformen berichtet getestet. Die vollständige Gateway-Neustartabnahme steht aus. [Installationskonzept](provisioning/INSTALLATIONSKONZEPT.md), [Bedienung](provisioning/README.md) und [Projektstatus](../../docs/PROJEKTSTATUS.md) trennen Zielplan, aktuelle CLI und Nachweise. Die alte Installerkopie bleibt historische Referenz.
+Der zentrale [Installer](provisioning/install.sh) ist für das Laborprofil teilweise implementiert. Paket A ist einschließlich vollständigem Gateway-Neustart am 11.11.2026 auf beiden Plattformen durch Johannes hardwareseitig abgenommen und abgeschlossen. Die Vorbereitung von Paket B ist der nächste Schritt. [Installationskonzept](provisioning/INSTALLATIONSKONZEPT.md), [Bedienung](provisioning/README.md) und [Projektstatus](../../docs/PROJEKTSTATUS.md) trennen Zielplan, aktuelle CLI und Nachweise. Die alte Installerkopie bleibt historische Referenz.

@@ -37,13 +37,29 @@ Die Bestandsanalyse ist abgeschlossen. Johannes hat den ersten lesenden Stand vo
 - Containerneustart erfolgreich; Projekt und Nodes bleiben erhalten.
 - Wiederholter Installerlauf ohne Fehler; vorhandener Container erkannt und Container-ID unverändert.
 
-Mosquitto fehlt erwartungsgemäß, da es noch nicht installiert wurde. Laut Johannes sind die genannten Node-RED-Hardwaretests auf beiden Plattformen bestanden. Der vollständige Gateway-Neustart steht als letzter Node-RED-Abnahmetest noch aus; der Containerneustart allein belegt den automatischen Start nach dem Booten nicht.
+Mosquitto fehlt erwartungsgemäß, da es noch nicht installiert wurde. Laut Johannes sind die genannten Node-RED-Hardwaretests auf beiden Plattformen bestanden. Die zunächst noch ausstehende vollständige Gateway-Neustartabnahme ist mit der folgenden Rückmeldung abgeschlossen.
 
-**Genau ein nächster Prüfschritt.** Johannes führt auf AI7020 und AI7100 den vollständigen Gateway-Neustart als letzten Abnahmetest durch. Erfolgskriterium sind der automatische Start von `mynodered`, ein über SSH-Tunnel erreichbarer Editor und das erhaltene Projekt `FLOW1` mit seinen Nodes. In diesem Dokumentationsschritt wurden ausschließlich die berichteten Ergebnisse eingetragen; Installer, Container und Projektdaten wurden nicht verändert.
+**Paket A abgeschlossen – Hardwareabnahme am 11.11.2026 durch Johannes.** Der vollständige Linux-Neustart wurde auf beiden Gateways erfolgreich durchgeführt und von Johannes als Abschluss von Paket A gemeldet.
+
+| Testgerät | Hardware | Vollständiger Gateway-Neustart und Funktionsprüfung |
+|---|---|---|
+| AI7020-8 | Jetson Orin Nano | Bestanden; Docker meldet für `mynodered` zusätzlich ausdrücklich `healthy` |
+| AI7100-3 | Jetson Orin NX | Bestanden; keine gesonderte Docker-Health-Meldung übermittelt |
+
+Für beide Plattformen bestätigt:
+
+- Docker und Node-RED starten automatisch; `mynodered` läuft ohne manuellen Start.
+- `FLOW1`, `flows.json` und die übrigen Projektdateien bleiben erhalten.
+- Die Dateieigentümer sind weiterhin `friedrich`.
+- Node-RED funktioniert nach dem vollständigen Linux-Neustart weiterhin.
+
+Die zuvor bestandenen Erstinstallations-, Wiederholungs- und Containerneustarttests bleiben gültig. Paket A ist damit hardwareseitig erfolgreich abgenommen und abgeschlossen. Die zusätzliche `healthy`-Meldung wird ausschließlich dem AI7020 zugeschrieben. Diese Abnahme erweitert weder den Funktionsumfang auf B–F noch die Freigabe der ausdrücklich offenen Einzelentscheidungen.
+
+**Genau ein nächster Schritt.** Paket B – BSP-Schutz und Hostvoraussetzungen – lesend vorbereiten: die tatsächlich installierten BSP-/NVIDIA-Pakete und zugehörigen eigenen Artefakte mit Versionen und Prüfsummen als Grundlage der Schutzentscheidung zusammenstellen. Konkrete Schutzpakete und erlaubte Paketänderungen werden anschließend innerhalb B gesondert festgelegt und freigegeben. In diesem Dokumentationsschritt wurden keine Installer-Funktionen, Pakete oder Gatewayzustände verändert.
 
 ## Aktueller Installerauftrag
 
-Das [Installationskonzept](../platform/gateway/provisioning/INSTALLATIONSKONZEPT.md) wurde am 11.11.2026 nach zwei Dokumentationspräzisierungen von Johannes auf übergeordneter Ebene freigegeben: Architektur und Entwicklungsfahrplan A–F gelten als Rahmen. Als Vorschlag gekennzeichnete Details, insbesondere BSP-Schutzpakete, konkrete Netzwerkparameter, MQTT-Listener, Komponentenversionen und noch nicht implementierte CLI-Funktionen, bleiben offen und werden im jeweiligen Paket gesondert festgelegt und freigegeben. Die normale Installation deaktiviert Desktop/GDM nicht automatisch und führt keinen automatischen Reboot aus; ein optionaler Headless-Betrieb braucht später eine gesonderte Entscheidung und Tests. Struktur und Funktionskatalog wurden beibehalten; Installer-Code und Gatewayzustand wurden nicht verändert. Paket A wartet auf Johannes' vollständigen Gateway-Neustarttest auf beiden Plattformen. Erst nach dessen erfolgreichem Abschluss beginnt Paket B; B–F wurden in diesem Schritt nicht begonnen.
+Das [Installationskonzept](../platform/gateway/provisioning/INSTALLATIONSKONZEPT.md) wurde am 11.11.2026 nach zwei Dokumentationspräzisierungen von Johannes auf übergeordneter Ebene freigegeben: Architektur und Entwicklungsfahrplan A–F gelten als Rahmen. Als Vorschlag gekennzeichnete Details, insbesondere BSP-Schutzpakete, konkrete Netzwerkparameter, MQTT-Listener, Komponentenversionen und noch nicht implementierte CLI-Funktionen, bleiben offen und werden im jeweiligen Paket gesondert festgelegt und freigegeben. Die normale Installation deaktiviert Desktop/GDM nicht automatisch und führt keinen automatischen Reboot aus; ein optionaler Headless-Betrieb braucht später eine gesonderte Entscheidung und Tests. Paket A ist nach der berichteten Neustartabnahme auf beiden Plattformen abgeschlossen; damit kann B vorbereitet werden. B–F sind weiterhin nicht implementiert. Dieser Schritt dokumentiert ausschließlich den Abschluss; Installer-Code und Gatewayzustand bleiben unverändert.
 
 ## Übergeordnetes Integrationsziel, separater Auftrag
 
