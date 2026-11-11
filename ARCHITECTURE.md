@@ -2,6 +2,8 @@
 
 **Status:** Zielordnung / Entwicklungskonzept, kein bereits integrierter Release.
 
+Für den Gateway-Installer konkretisiert das [Installationskonzept](platform/gateway/provisioning/INSTALLATIONSKONZEPT.md) Zielumfang, Profile und Freigabegates. Seine übergeordnete Architektur und der Fahrplan A–F sind freigegeben; ausdrücklich offene technische Detailentscheidungen bleiben gesondert zu entscheiden. Das Friedrich-BSP wird im eigenen Entwicklungsrepository gebaut und geflasht. `platform/gateway/bsp/` enthält hier Referenzen und Nachweise; der Installer beginnt auf dem betriebsfähigen geflashten Gateway.
+
 ## Schichten
 
 ```text

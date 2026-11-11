@@ -1,0 +1,171 @@
+
+Board Support Package Sriver Package (BSP) Jetson_Linux_R36.4.0_aarch64.tbz2:
+
+DeveloperGuide:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/Kernel/KernelCustomization.html
+
+DOWNLOAD jetson-linux-r3640: 
+LINK: https://developer.nvidia.com/embedded/jetson-linux-r3640
+
+Jetson Module Adaptation and Bring-Up » Jetson Orin NX and Nano Series EEPROM:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/HR/JetsonModuleAdaptationAndBringUp/JetsonOrinNxNanoSeries.html
+
+Kernel Customization and .dtb:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/Kernel/KernelCustomization.html
+
+Root File System:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/RootFileSystem.html
+
+************************************************************************************************************************************************************************************
+Das Jetson Linux Board Support Package (BSP) enthält die gesamte Software, die Sie zur Entwicklung und Ausführung von Anwendungen mit Jetson Linux benötigen. Das aktuelle Jetson Linux BSP ist auf der Jetson Linux Seite auf der NVIDIA Developer Site erhältlich. Es enthält:
+
+    Quellen [sources public_sources]: kernel_src für das erstellen der dtb. Linux ist ein Open-Source-Produkt. Der Quellcode ist in der Jetson Linux Distribution enthalten.
+
+    Beispiel-Root-Dateisystem [rootfs]: Ein Root-Dateisystem, das von der Ubuntu-Distribution abgeleitet ist. Sie können dieses Root-Dateisystem als Grundlage für die Entwicklung eines
+    auf Ihre Anwendung zugeschnittenen Systems verwenden.
+
+    Jetson Linux Toolchain [toolchain]: Eine Reihe von Softwarekomponenten, die für die Entwicklung von Jetson Linux-Anwendungen verwendet werden.
+
+    Jetson Linux Kernel [kernel]: Hier wurde das neue roofs erstellt in tools->sample. Eine Version des Ubuntu Linux-Kernels, die von NVIDIA für die Verwendung auf Jetson-Geräten optimiert wurde.
+
+    Bootloader: Boot-Software für ein Betriebssystem auf einem Jetson-Gerät.
+
+************************************************************************************************************************************************************************************
+
+************************************************************************************************************************************************************************************
+Note required packages:
+************************************************************************************************************************************************************************************
+apt-get update
+apt-get dist-upgrade
+apt-get install flex
+sudo apt-get install flex
+sudo apt-get install bison
+sudo apt-get install libssl-dev
+************************************************************************************************************************************************************************************
+
+************************************************************************************************************************************************************************************
+Kernel Building:
+************************************************************************************************************************************************************************************
+
+1. Download the Driver Package (BSP) Sources: Jetson_Linux_R36.4.0_aarch64.tbz2
+
+Difference between:
+-Driver Package (BSP): Prefabricated, installable drivers and software.
+-Driver Package (BSP) Sources: Source codes of drivers and software for customization or development.
+
+2. Please work through this link completely:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/Kernel/KernelCustomization.html#sd-kernel-kernelcustomization
+
+-> Prerequisites
+-> To Sync the Kernel Sources with Git
+-> edit the defconfig for LAN743X
+-> Building the Jetson Linux Kernel and install
+-> Building the DTBs and install
+-> Building and install the In-Tree Modules
+-> Building and install the Out-of-Tree Modules
+
+Node: Kernel modules m in defconfig:
+This command builds and installs the kernel modules. With the -E option, the environment variables (including INSTALL_MOD_PATH) are retained when executing with sudo.
+$ sudo -E make install -C kernel
+
+3. Then edit the defconfig for LAN743X before compiling -> File for kernel customization:
+/home/johannes/Dokumente/AI7000/Jetson_Linux_36.4/sources/public_sources/Linux_for_Tegra/source/kernel_src/kernel/kernel-jammy-src/arch/arm64/configs/defconfig
+
+Changed entry:
+CONFIG_USB_RTL8150=m
+CONFIG_USB_RTL8152=m
+CONFIG_USB_LAN78XX=m
+CONFIG_LAN743X=y
+
+4. the settings can be controlled with make menuconfig
+
+5. Trigger
+
+$ export CROSS_COMPILE=<toolchain-path>/bin/aarch64-buildroot-linux-gnu-
+$ make -C kernel
+
+6. copy the kernel Image into the SDK Manger for flashing
+
+cp new Image to /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NX_TARGETS/Linux_for_Tegra/kernel
+
+7. Building the DTBs
+
+Go to the build directory:
+
+$ cd <install-path>/Linux_for_Tegra/source
+
+$ export CROSS_COMPILE=<toolchain-path>/bin/aarch64-buildroot-linux-gnu-
+$ export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src
+$ make dtbs
+
+Run the following commands to install:
+
+$ cp kernel-devicetree/generic-dts/dtbs/* <install-path>/Linux_for_Tegra/kernel/dtb/
+
+8. Install In-Tree Modules and Out-of-Tree Modules:
+
+Definition: In-Tree modules are kernel modules that are contained in the main kernel source code. They are compiled with the kernel itself and are directly integrated into the kernel architecture.
+Definition: Out-of-Tree-Module sind Kernel-Module, die nicht im Hauptkernel-Quellcode enthalten sind. Sie werden separat entwickelt, häufig von Drittanbietern.
+
+Please note: 
+-that there is an image in the SDK Manager as well as an image in the rootfs which is used depends on the UEFI!
+
+************************************************************************************************************************************************************************************
+
+************************************************************************************************************************************************************************************
+Building rootfs:
+************************************************************************************************************************************************************************************
+
+1. Manually Generate a Root File System
+
+$ cd <your_L4T_root>/Linux_for_Tegra/tools/samplefs
+
+2. Changes packages:
+
+/home/johannes/Dokumente/AI7000/Jetson_Linux_36.4/kernel/Linux_for_Tegra/tools/samplefs/nvubuntu-jammy-desktop-aarch64-packages
+
+3. Create the Desktop Flavor Root File System:
+
+$ sudo ./nv_build_samplefs.sh --abi aarch64 --distro ubuntu --flavor desktop --version jammy
+
+4. Unpack the rootfs to the flashing tool rootfs
+
+5. Install In-Tree Modules and Out-of-Tree Modules see Kernel Building:
+   Node: In-Tree Modules and Out-of-Tree Modules to work through the points shown in detail. Attention, you can quickly swap a folder.
+
+Definition: In-Tree modules are kernel modules that are contained in the main kernel source code. They are compiled with the kernel itself and are directly integrated into the kernel architecture.
+Definition: Out-of-Tree-Module sind Kernel-Module, die nicht im Hauptkernel-Quellcode enthalten sind. Sie werden separat entwickelt, häufig von Drittanbietern.
+
+6. Create an L4T from an Ubuntu with sudo ./apply_binaries.sh
+
+Console Inputs:
+************************************************************************************************************************************************************************************
+sudo tar xf /home/nvidia/nvidia/NVIDIA_Jetson_Linux_r36.4/BSP_Jetson_Linux_R36.4.0/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/tools/samplefs/sample_fs.tbz2  -C /home/nvidia/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NX_TARGETS/Linux_for_Tegra/rootfs/
+export INSTALL_MOD_PATH=/home/nvidia/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NX_TARGETS/Linux_for_Tegra/rootfs/
+cd /home/nvidia/nvidia/NVIDIA_Jetson_Linux_r36.4/BSP_Jetson_Linux_R36.4.0/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source
+sudo -E make install -C kernel
+export CROSS_COMPILE=/home/nvidia/nvidia/NVIDIA_Jetson_Linux_r36.4/Bootlin_Toolchain_gcc_11.3/aarch64--glibc--stable-2022.08-1/bin/aarch64-buildroot-linux-gnu-
+************************************************************************************************************************************************************************************
+
+************************************************************************************************************************************************************************************
+System flashing:
+************************************************************************************************************************************************************************************
+1. replace original .Image
+
+2. replace original .rootfs
+
+3. replace original .dtb
+
+4. EEPROM Modifications
+
+EEPROM is an optional component for a customized carrier board. If the carrier board is designed without an EEPROM, the following modifications will be needed on the MB2 BCT file:
+
+Linux_for_Tegra/bootloader/generic/BCT/tegra234-mb2-bct-misc-p3767-0000.dts
+
+- cvb_eeprom_read_size = <0x100>
++ cvb_eeprom_read_size = <0x0>
+
+5. Flashing with SDK-TOOL:
+Start GUI SDK-Manager
+
+************************************************************************************************************************************************************************************

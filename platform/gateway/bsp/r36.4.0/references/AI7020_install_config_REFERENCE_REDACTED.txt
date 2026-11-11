@@ -1,0 +1,256 @@
+# HISTORISCHE REFERENZ / SANITIZED / NICHT AUSFUEHREN
+# Quelle: AI7020_install_config (vom Nutzer am 04.11.2026 bereitgestellt).
+# SHA256 Original (nicht sanitisierte Datei): 101f19ec7d09ff44191403301268f674e0e8b7d05c85b00e33594fc3b893d07d
+# Nur ein uebergebener Passwortwert wurde durch <REDACTED_PASSWORD> ersetzt.
+# Keine Hardware-Freigabe / kein ausfuehrbares Script.
+
+####################################################################################################################################################################################
+ONLY FOR AI7020 SYSTEMS
+FRIEDRICH AUTOMATION 2025
+Version: 1.2.0
+###################################################################################################################################################################################
+
+Board Support Package Sriver Package (BSP) Jetson_Linux_R36.4.0_aarch64.tbz2:
+
+DeveloperGuide:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/Kernel/KernelCustomization.html
+
+DOWNLOAD jetson-linux-r3640: 
+LINK: https://developer.nvidia.com/embedded/jetson-linux-r3640
+
+Jetson Module Adaptation and Bring-Up » Jetson Orin NX and Nano Series EEPROM:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/HR/JetsonModuleAdaptationAndBringUp/JetsonOrinNxNanoSeries.html
+
+Kernel Customization and .dtb:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/Kernel/KernelCustomization.html
+
+Root File System:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/RootFileSystem.html
+
+####################################################################################################################################################################################
+
+####################################################################################################################################################################################
+Note required packages:
+####################################################################################################################################################################################
+
+apt-get update
+apt-get dist-upgrade
+apt-get install flex
+sudo apt-get install flex
+sudo apt-get install bison
+sudo apt-get install libssl-dev
+
+####################################################################################################################################################################################
+Building rootfs:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/RootFileSystem.html
+####################################################################################################################################################################################
+
+1. cd /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/tools/samplefs
+
+2. customizing the packages in the file: nvubuntu-jammy-desktop-aarch64-packages
+3. brltty and modemmanager must still be removed here
+
+Node: The apply_binaries.sh script is a central component of the NVIDIA Jetson toolchain. It ensures that your root file system (rootfs/) is equipped with all the necessary binaries, 
+      kernel modules, headers and configurations that are required for an executable Jetson system.
+      - debootstrap: to create a minimal Ubuntu base system
+      - apt-get (chrooted): to install all packages mentioned in the package list
+      - chroot + configurations: to set up users, groups, basic network etc.
+
+4.  (For desktop) sudo ./nv_build_samplefs.sh --abi aarch64 --distro ubuntu --flavor desktop --version jammy
+
+5. sudo tar xf /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/tools/samplefs/sample_fs.tbz2 -C /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/rootfs
+
+NODE: this is only an ubuntu rootfs for a L4T must executed sudo ./apply_binaries.sh -> then add kernel and kernel sources if changed.
+
+####################################################################################################################################################################################
+Building Kernel:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/Kernel/KernelCustomization.html
+####################################################################################################################################################################################
+
+1. sudo apt install git-core 			Node: do not always execute if already done
+2. sudo apt install build-essential bc 		Node: do not always execute if already done
+
+3. cd /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source
+
+4. ./source_sync.sh -k -t jetson_36.4 		Node: do not always execute if already done
+
+5. export CROSS_COMPILE=/home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/toolchain/aarch64--glibc--stable-2022.08-1/bin/aarch64-buildroot-linux-gnu-
+
+6. Customize the defconfig file: /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source/kernel/kernel-jammy-src/arch/arm64/configs/defconfig with:
+
+7. cd /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source/kernel/kernel-jammy-src
+8. make ARCH=arm64 defconfig
+9. make ARCH=arm64 menuconfig
+
+menuconfig:
+
+Node: The LAN743x must be connected with = y, otherwise the interface will not be intalsized correctly due to timing problems.
+
+For LAN7430:
+        CONFIG_LAN743X=y
+
+-> Device Drivers
+  -> Network device support (NETDEVICES [=y])
+    -> Ethernet driver support (ETHERNET [=y])
+      -> Microchip devices
+        -> Microchip LAN743x PCIe Ethernet support (LAN743X [=y])
+
+        
+FOR BG95:
+	CONFIG_USB_SERIAL=m
+	CONFIG_USB_SERIAL_OPTION=m
+
+-> Device Drivers
+  -> USB support (USB_SUPPORT [=y])
+    -> USB Serial Converter support (USB_SERIAL [=m])
+      -> USB driver for GSM and CDMA modems (USB_SERIAL_OPTION [=m])
+
+
+FOR RAK3172:
+        CONFIG_USB_SERIAL_CH341=m
+
+-> Device Drivers
+  -> USB support
+    -> USB Serial Converter support (USB_SERIAL [=m])
+      -> USB CH341 single port serial driver (USB_SERIAL_CH341 [=m])
+
+	
+For Docker:
+   	CONFIG_IP_NF_RAW=m
+   	
+-> Networking support
+  -> Networking options
+    -> Network packet filtering framework (Netfilter) (NETFILTER [=y])
+      -> IP: Netfilter Configuration
+        -> IP tables support (required for filtering/masq/NAT)
+          -> raw table support (IP_NF_RAW [=m])
+	
+	
+	
+Node: always save in .config from this make ARCH=arm64 savedefconfig makes the new defconfig
+
+10. make ARCH=arm64 savedefconfig Node: .config -> is new defconfig
+11. cp defconfig arch/arm64/configs/defconfig
+
+
+
+
+Node: here the kernel are compiled and installed make -> Image, dtbs .dtb, modules .ko
+      The important make file is the one in the source/kernel/Makefile. Wrapper for kernel build via kernel-jammy-src
+      It systematically calls the “real” kernel build process in the kernel-jammy-src/ subfolder - with parameters such as ARCH=arm64, LOCALVERSION=-tegra, optional O=build/, etc.
+
+12. cd /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source
+13. make -C kernel
+
+
+
+
+Node: sudo -E make install -C kernel -> 
+      - Copies kernel image to $(INSTALL_MOD_PATH)/boot/
+      - Installs all .ko files (from =m) into RootFS
+
+14. export INSTALL_MOD_PATH=/home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/rootfs/
+15. sudo -E make install -C kernel
+
+
+
+
+Node: Kernel copies to RootFS and Linux_for_Tegra/kernel:
+
+16. cp kernel/kernel-jammy-src/arch/arm64/boot/Image /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/kernel
+17. sudo cp kernel/kernel-jammy-src/arch/arm64/boot/Image /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/rootfs/boot
+
+
+
+Node: The important make file is the one in the source/Makefile. Controls only NVIDIA's own external modules. The Make file builds the nvidia specific modules:
+
+18. export CROSS_COMPILE=/home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/toolchain/aarch64--glibc--stable-2022.08-1/bin/aarch64-buildroot-linux-gnu-
+19. export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src
+
+20. make modules
+21. export INSTALL_MOD_PATH=/home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/rootfs/
+22. sudo -E make modules_install
+
+####################################################################################################################################################################################
+Building .dtb
+####################################################################################################################################################################################
+
+1. cd /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source
+2. export CROSS_COMPILE=/home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/toolchain/aarch64--glibc--stable-2022.08-1/bin/aarch64-buildroot-linux-gnu-
+3. export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src
+4. make dtbs
+5. cp kernel-devicetree/generic-dts/dtbs/* /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/kernel/dtb
+
+####################################################################################################################################################################################
+Now an ubuntu becomes an L4T with sudo ./apply_binaries.sh:
+####################################################################################################################################################################################
+
+Node: The kernel modules can be overwritten here, maybe then  sudo ./apply_binaries.sh execute before.
+      The apply_binaries.sh script is a central tool from NVIDIA to make the root file system (rootfs/) 
+      of your Jetson system fully operational. It adds firmware, kernel modules, headers, tools and configuration files.
+      
+      - unpacking and installing NVIDIA-specific .tbz2 archives into the rootfs
+      - setting kernel header symlinks
+      - updating initrd (initial RAM disk)
+      - install extlinux.conf
+      - add system groups
+
+1. cd /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra
+2. sudo ./apply_binaries.sh
+3. cd /home/johannes/Dokumente/AI7XX0/Jetson_Linux_36.4/BSP/Jetson_Linux_R36.4.0_aarch64/Linux_for_Tegra/source
+
+4. Install modules_install and kernel -> Note: For self-built kernels, steps 14–22 of the Building Kernel instructions must be followed! 
+5. Tip: Point 20. make modules does not always have to be re-executed if nothing has changed!
+
+6. Copy all files required for installation to rootf, for example AI7XX0_SYSTEM_INIT:
+7. sudo cp -r 'Path to AI7XX0_SYSTEM_INIT' /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra/rootfs/home
+
+####################################################################################################################################################################################
+Jetson Module Adaptation and Bring-Up EEPROM:
+####################################################################################################################################################################################
+
+1. In file Linux_for_Tegra/bootloader/generic/BCT/tegra234-mb2-bct-misc-p3767-0000.dts
+   - cvb_eeprom_read_size = <0x100>
+   + cvb_eeprom_read_size = <0x0>
+
+####################################################################################################################################################################################
+Changing and Generating the Pinmux dtsi Files:
+LINK: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/HR/JetsonModuleAdaptationAndBringUp/JetsonOrinNxNanoSeries.html#generating-the-pinmux-dtsi-files
+####################################################################################################################################################################################
+
+1. Download Jetson Orin NX Series and Jetson Orin Nano Series Pinmux from Jetson Download Center
+2. Customize the spreadsheet to configure your board and click Generate DT File to generate the following files
+3. Apply the changes to the files:
+   - tegra234-mb1-bct-gpio-p3767-dp-a03.dtsi
+   - tegra234-mb1-bct-pinmux-p3767-dp-a03.dtsi
+   - tegra234-mb1-bct-padvoltage-p3767-dp-a03.dtsi
+   
+####################################################################################################################################################################################
+Flashing using initrd Flash with Orin NX and Nano:
+Link: https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/SD/FlashingSupport.html#using-initrd-flash-with-orin-nx-and-nano
+####################################################################################################################################################################################
+
+Skipping oem-config Note: for basic or minimal not for desktop:
+1. sudo ./tools/l4t_create_default_user.sh -u ai7100-3 -p <REDACTED_PASSWORD> -n ai7100-3 -a --accept-license
+
+2. cd /home/johannes/nvidia/nvidia_sdk/JetPack_6.1_Linux_JETSON_ORIN_NANO_4GB/Linux_for_Tegra
+
+Flashing:
+3. sudo ./tools/kernel_flash/l4t_initrd_flash.sh --external-device nvme0n1p1 -p "-c ./bootloader/generic/cfg/flash_t234_qspi.xml" -c ./tools/kernel_flash/flash_l4t_t234_nvme.xml --showlogs --network usb0 jetson-orin-nano-devkit external
+
+####################################################################################################################################################################################
+Flashing with SDK-TOOL:
+####################################################################################################################################################################################
+
+1. Start GUI SDK-Manager
+2. - Flash Jetson Linux and 
+   - Jetson Runtime Components
+		- Aditional Setup
+		- NVIDIA Container Runtime
+			
+3. Remove: sudo apt-get purge brltty 
+4. Remove: sudo apt-get purge modemmanager
+
+5. Install AI7XX0.sh for Software
+
+

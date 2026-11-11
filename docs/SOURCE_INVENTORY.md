@@ -2,6 +2,8 @@
 
 Diese Quellen wurden in dieser Unterhaltung zur Analyse bereitgestellt; **Originaldateien wurden nicht ins Entwicklungs-Startpaket kopiert.**
 
+Das Inventar beschreibt den historischen Eingang. Neuere Gateway-Hardwaremeldungen stehen in [PROJEKTSTATUS.md](PROJEKTSTATUS.md), der aktuelle technische Installerplan im [Installationskonzept](../platform/gateway/provisioning/INSTALLATIONSKONZEPT.md). Eine damalige offene Livebaseline ist von den inzwischen berichteten Tests zu unterscheiden.
+
 | Typ | Dateiname | SHA-256 | Größe |
 |---|---|---|---:|
 | VS-Code Quelle Teilbestand | `src.zip` | `c6c2b6d1711a830e3d59612b12b5e3aac826230fbf3a3ad635c20ef474ad0001` | 5,716 Bytes |

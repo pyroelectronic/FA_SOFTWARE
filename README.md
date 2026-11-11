@@ -1,24 +1,26 @@
 # FA_SOFTWARE — zentraler technischer Arbeitsstand
 
-**Stand:** 2026-11-04 · **Status:** beschlossene Arbeitsstruktur; keine Software-/Hardwarefreigabe.  
-**Geplantes privates Repository:** `pyroelectronic/FA_SOFTWARE` (noch anzulegen).  
+**Stand:** 2026-11-11 · **Status:** Gateway-Installer in Entwicklung; Teilfunktionen auf beiden Plattformen berichtet getestet, vollständige Abnahme offen.
+
+**Arbeitsrepository:** `pyroelectronic/FA_SOFTWARE`.
+
 **Projektsteuerung:** [`pyroelectronic/FRIEDRICH-AUTOMATION`](https://github.com/pyroelectronic/FRIEDRICH-AUTOMATION), insbesondere [Issue #12](https://github.com/pyroelectronic/FRIEDRICH-AUTOMATION/issues/12).
 
 ## START HIER
 
-1. Ordner `FA_SOFTWARE/` in ein **neues privates** Git-Repository übernehmen. Keine Originalarchive, Credentials, kompilierten NVIDIA-Bäume oder Binärimages hinzufügen.
-2. Codex dieses Repository öffnen lassen. Zuerst `AGENTS.md` und `ARCHITECTURE.md` lesen.
-3. Als **ersten Auftrag** `codex/01_GATEWAY_BESTAND.md` geben: lesende Analyse der Gateway-Basis und des Installationsskripts; keine Flash-/Installationsaktionen. Eine **bereinigte, ausdrücklich nicht ausführbare Referenzkopie** des historischen Installers liegt unter `references/legacy-gateway/`.
-4. Fehlende Referenzquellen **separat** und mit Zugriffsschutz bereitstellen; `docs/INPUTS_OFFEN.md` nutzen. Die Quellen bleiben auch nach der Analyse als historische Baselines erhalten.
-5. Nach dem Bericht **genau einen kleinen Umsetzungsschritt** vereinbaren, bauen, lokal testen, Teststand nachweisen; Git-Commit/Tag erledigt Johannes.
+1. Zuerst `AGENTS.md` und `ARCHITECTURE.md` lesen.
+2. Für Zielumfang, Profile und Pakete A–F das [Gateway-Installationskonzept](platform/gateway/provisioning/INSTALLATIONSKONZEPT.md) lesen. Übergeordnete Architektur und Fahrplan sind freigegeben; ausdrücklich offene technische Detailentscheidungen werden im jeweiligen Paket gesondert festgelegt und freigegeben.
+3. Den tatsächlichen Stand in [PROJEKTSTATUS.md](docs/PROJEKTSTATUS.md) und die aktuelle Bedienung in der [Provisionierungsanleitung](platform/gateway/provisioning/README.md) prüfen.
+4. Historische Analysegrundlagen bleiben unter `codex/01_GATEWAY_BESTAND.md` und `references/legacy-gateway/` erhalten. Fehlende Originale separat geschützt bereitstellen; keine Credentials, Originalarchive oder großen Buildbäume hinzufügen.
+5. Je einen gesondert freigegebenen Umsetzungsauftrag innerhalb des ausgewählten Pakets bearbeiten und lokal prüfen; erforderliche Detailentscheidungen vorher festlegen. Johannes führt Hardwaretests, Git-Commits und Veröffentlichung durch.
 
-**Sofortiger technischer Hauptstrang:** IgH → EC100 OP → reale PDO-Werte → kleiner Dienst → Anzeige/Server, entsprechend Issue #12. Die Bestandsaufnahme des OS ist ein vorbereitender Teil und darf den Datenpfad nicht durch einen vollständigen BSP-Neubau blockieren.
+**Aktueller Stand:** Das übergeordnete Installationskonzept ist nach den Dokumentationspräzisierungen freigegeben. Jetzt schließt Johannes Paket A mit dem vollständigen Gateway-Neustarttest auf beiden Plattformen ab; erst danach beginnt Paket B. Der spätere IgH-/EC100-Datenpfad bleibt das übergeordnete Integrationsziel von Issue #12 und wird in dieser Installerphase nicht implementiert oder vorbereitet. Das Friedrich-BSP wird separat entwickelt und vor der Softwareinstallation geflasht.
 
 ## Ordner und Zuständigkeiten
 
 | Ordner | Zweck |
 |---|---|
-| `platform/gateway/` | Jetson Linux / BSP, Treiber, Flashen, Host-Provisionierung, native IgH-Integration |
+| `platform/gateway/` | BSP-/Flash-Referenzen, Host-Provisionierung, später getrennte native Dienste; aktive BSP-Entwicklung im eigenen Repository |
 | `platform/server/` | Später definierter AI8200/x86_64-Basisstand |
 | `runtime/` | Optionale, getestete Dienste und Laufzeitprofile, Docker-/Compose-Rezepte |
 | `sdk/` | Bewährte Module, Bibliotheken, Beispiele, Projektvorlagen |
@@ -48,4 +50,4 @@ Diese Ordner sind **logische Grenzen** und noch keine Pflicht, Komponenten berei
 - Neues JetPack/Kernel-Release nur als eigene, isolierte Baseline evaluieren.
 - Hardware-Sicherheit wie Secure Boot, Rootfs-Schutz und Kundenzertifikate pro späterem Anforderungsprofil planen, nicht als sofortige Standardpflicht vortäuschen.
 
-Weiterlesen: `ARCHITECTURE.md`, `docs/BASELINE_REGISTER.md`, `docs/INPUTS_OFFEN.md` und `codex/01_GATEWAY_BESTAND.md`.
+Weiterlesen: [Installationskonzept](platform/gateway/provisioning/INSTALLATIONSKONZEPT.md), `ARCHITECTURE.md`, `docs/BASELINE_REGISTER.md` und `docs/INPUTS_OFFEN.md`.

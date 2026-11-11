@@ -1,5 +1,7 @@
 # Noch benötigte Eingaben (kein Blocker für die Struktur)
 
+**Historischer Eingangsstand:** Diese Liste stammt aus der ersten Quellenaufnahme. Die nachfolgenden Hardwaremeldungen zu R36.4.0, Projektpfaden und Node-RED stehen in [PROJEKTSTATUS.md](PROJEKTSTATUS.md); sie ersetzen nicht die weiterhin fehlenden vollständigen Original-/Releaseartefakte. Aktuellen Installerumfang und verbleibende Entscheidungen beschreibt das [Installationskonzept](../platform/gateway/provisioning/INSTALLATIONSKONZEPT.md).
+
 Die bisherige Analyse basiert auf **Teilquellen**. Nicht vorliegende Dateien dürfen nicht erfunden werden.
 
 | Priorität | Benötigt | Wofür? | Schon bekannt |

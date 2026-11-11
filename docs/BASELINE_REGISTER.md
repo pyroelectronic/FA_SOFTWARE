@@ -1,5 +1,7 @@
 # Referenzstandregister — noch keine Freigabe
 
+Die folgende Tabelle bewahrt die historischen Eingangsstände. Die am 10./11.11.2026 berichteten Gateway-/Node-RED-Tests stehen aktuell in [PROJEKTSTATUS.md](PROJEKTSTATUS.md); daraus folgt keine Freigabe des alten Archivs oder einer vollständigen Zielinstallation. Der technische Entwicklungsplan steht im [Installationskonzept](../platform/gateway/provisioning/INSTALLATIONSKONZEPT.md).
+
 | ID | Plattform | Nachweis/Quelle | Status |
 |---|---|---|---|
 | `GW-LEGACY-2026-11` | AI7020/AI7100, Jetson | `AI7XX0.sh`, `ai7XX0_install_config_V1.0_36.4.3_V6.1.7z`, frühere NVIDIA-Buildordner | **Referenzmaterial, Version/Hardware noch zu verifizieren; sanitisierte Installer-Lesekopie im Repository** |
