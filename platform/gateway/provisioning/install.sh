@@ -3,14 +3,18 @@ set -u
 export LC_ALL=C
 
 usage() {
-    printf 'Aufruf: %s labor\nBestandsaufnahme, Projektverzeichnisse und Node-RED für den SSH-Tunnel.\n' "$0"
+    printf 'Aufruf: %s labor | bsp-plan PAKET... | bsp-holds | c1-install | c1-status\n' "$0"
+    printf 'labor: Bestandsaufnahme, Projektverzeichnisse und Node-RED für den SSH-Tunnel.\n'
+    printf 'bsp-plan: nur APT-Simulation, keine Installationsfreigabe. bsp-holds: noch gesperrt.\n'
+    printf 'C1: beide Bestandsprofile per MAC binden, Originale sichern; c1-status prüft nur lesend.\n'
 }
 
 if [[ $# == 1 && ( $1 == --help || $1 == -h ) ]]; then
     usage
     exit 0
 fi
-if [[ $# != 1 || $1 != labor ]]; then
+if ! { [[ $# == 1 && ( $1 == labor || $1 == bsp-holds || $1 == c1-install || $1 == c1-status ) ]] ||
+       [[ $# -ge 2 && $1 == bsp-plan ]]; }; then
     usage >&2
     exit 2
 fi
@@ -46,6 +50,170 @@ package_version() {
     [[ $record == installed\ * ]] || return 1
     printf '%s\n' "${record#installed }"
 }
+
+# B2: Vorschlag aus B1, keine automatische Aktivierung im Laborprofil.
+readonly BSP_HOLDS_APPROVED=yes
+readonly -a BSP_PACKAGES=(
+    nvidia-l4t-kernel nvidia-l4t-kernel-dtbs nvidia-l4t-kernel-oot-modules
+    nvidia-l4t-display-kernel nvidia-l4t-initrd nvidia-l4t-bootloader
+    nvidia-l4t-core nvidia-l4t-tools nvidia-l4t-init nvidia-l4t-configs
+    nvidia-l4t-firmware nvidia-l4t-xusb-firmware nvidia-l4t-apt-source
+    nvidia-l4t-kernel-headers nvidia-l4t-kernel-oot-headers)
+
+bsp_check_baseline() {
+    local package expected version audit
+    if [[ $EUID != 0 || $(os_field ID) != ubuntu || $(os_field VERSION_ID) != 22.04 ||
+          $(uname -m) != aarch64 || $(uname -r) != 5.15.148-tegra ]] ||
+       ! grep -qE '^# R36 .*REVISION: 4\.0,' /etc/nv_tegra_release 2>/dev/null; then
+        printf 'B2 blockiert: root und die bekannte Ubuntu-/ARM64-/R36.4.0-Basis erforderlich.\n' >&2
+        return 1
+    fi
+    if ! audit=$(dpkg --audit 2>/dev/null) || [[ -n $audit ]]; then
+        printf 'B2 blockiert: dpkg-Zustand nicht eindeutig sauber; keine automatische Reparatur.\n' >&2
+        return 1
+    fi
+    for package in "${BSP_PACKAGES[@]}"; do
+        expected=36.4.0-20240912212859
+        case $package in
+            nvidia-l4t-kernel|nvidia-l4t-kernel-*|nvidia-l4t-display-kernel)
+                expected=5.15.148-tegra-$expected ;;
+        esac
+        version=$(package_version "$package") || version=''
+        if [[ $version != "$expected" ]]; then
+            printf 'B2 blockiert: fehlender oder abweichender Paketstand bei %s.\n' "$package" >&2
+            return 1
+        fi
+    done
+}
+
+# Nur lesen. -c wird innerhalb dieses root-Prozesses erzeugt, nicht über sudo-FDs.
+bsp_simulate_install() (
+    local package policy plan candidate
+    (( $# > 0 )) || return 2
+    bsp_check_baseline || return 1
+    command -v python3 >/dev/null && command -v timeout >/dev/null &&
+        command -v apt-get >/dev/null && command -v apt-cache >/dev/null || {
+        printf 'B2 blockiert: erforderliches Python-/APT-/timeout-Programm fehlt.\n' >&2; return 1;
+    }
+    for package in "$@"; do
+        # Keine Optionen, lokalen DEBs, Regex-/Globauswahl oder APT-Aktionssuffixe.
+        if [[ ! $package =~ ^[a-z0-9][a-z0-9+.-]+$ || $package == *[-+] || $package == *.deb ]]; then
+            printf 'B2 blockiert: nur exakte Binärpaketnamen ohne Zusatzsyntax erlaubt.\n' >&2
+            return 2
+        fi
+        case $package in nvidia-l4t*|nvidia-jetpack*)
+            printf 'B2 blockiert: NVIDIA-BSP-Paket als Installationsziel.\n' >&2; return 1 ;;
+        esac
+        if ! policy=$(env -u APT_CONFIG timeout 30s apt-cache -o Dir::Cache::pkgcache= \
+                -o Dir::Cache::srcpkgcache= policy -- "$package" 2>/dev/null); then
+            printf 'B2 blockiert: lokale APT-Kandidatenabfrage fehlgeschlagen.\n' >&2
+            return 1
+        fi
+        candidate=$(awk '$1 == "Candidate:" {print $2}' <<< "$policy")
+        if [[ ${policy%%$'\n'*} != "$package:" ||
+              ! $candidate =~ ^[a-zA-Z0-9.+:~_-]+$ ]]; then
+            printf 'B2 blockiert: exaktes Paket oder eindeutiger lokaler Kandidat fehlt.\n' >&2
+            return 1
+        fi
+    done
+    # #clear statt leerem -o: leere Werte entfernen bestehende Hooklisten nicht.
+    # Pins/Quellen bleiben wirksam; keine Netzabfrage, kein persistenter Binärcache.
+    if ! plan=$(env -u APT_CONFIG timeout 120s apt-get -c <(printf '%s\n' \
+            '#clear APT::Install;' '#clear AptCli::Hooks;' '#clear DPkg::Pre-Invoke;' \
+            '#clear DPkg::Post-Invoke;' '#clear DPkg::Pre-Install-Pkgs;') \
+            --simulate --no-remove --no-upgrade --no-install-recommends \
+            -o APT::Ignore-Hold=false -o APT::Get::allow-change-held-packages=false \
+            -o APT::Get::allow-downgrades=false -o APT::Get::force-yes=false \
+            -o APT::Get::AutomaticRemove=false -o APT::Get::Fix-Broken=false \
+            -o APT::Get::ReInstall=false -o APT::Get::Print-URIs=false \
+            -o APT::Install-Suggests=false \
+            -o Dir::Cache::pkgcache= -o Dir::Cache::srcpkgcache= \
+            install -- "$@" 2>/dev/null); then
+        printf 'B2 blockiert: APT-Simulation fehlgeschlagen oder Zeitlimit erreicht.\n' >&2
+        return 1
+    fi
+    # Nur bereinigte Aktionsnamen ausgeben; keine Quellen-/Hook-/Fehlerrohdaten.
+    printf '%s\n' "$plan" | python3 -I -B -c '
+import re, sys
+lines = sys.stdin.read().splitlines()
+inst, conf, counts = {}, set(), None
+name = r"[a-z0-9][a-z0-9+.-]*(?::[a-z0-9-]+)?"
+version = r"[A-Za-z0-9.+:~_-]+"
+danger = re.compile(r"^(?:nvidia-l4t|nvidia-jetpack|linux-|initramfs-tools|grub|shim|u-boot|fwupd|dkms|systemd|udev)|^(?:kmod|busybox-initramfs|klibc-utils|flash-kernel|keyboard-configuration|dmsetup|ntfs-3g|plymouth|fuse3|kbd|isc-dhcp-client)$")
+def stop(message):
+    print("B2 blockiert: " + message, file=sys.stderr)
+    sys.exit(1)
+for line in lines:
+    line = line.strip()
+    summary = re.fullmatch(r"(\d+) upgraded, (\d+) newly installed, (\d+) to remove and (\d+) not upgraded\.", line)
+    if summary:
+        if counts is not None: stop("mehrdeutige APT-Zusammenfassung")
+        counts = tuple(map(int, summary.groups()))
+        continue
+    if re.match(r"\d+ not fully installed or removed", line):
+        stop("unvollständiger dpkg-Zustand")
+    if not re.match(r"(?:Inst|Conf|Remv|Purg)(?:\s|$)", line):
+        continue
+    action = re.fullmatch(r"(Inst|Conf|Remv|Purg) (" + name + r") (.+)", line)
+    if not action: stop("unbekanntes APT-Aktionsformat")
+    op, package, rest = action.groups()
+    if danger.search(package.split(":")[0]): stop("BSP-/Boot-/Regenerationspaket " + package)
+    if op in ("Remv", "Purg"): stop("Entfernung oder Purge im Plan")
+    pattern = r"(?:\[(" + version + r")\] )?\((" + version + r")(?: [^\r\n]*)?\)"
+    values = re.fullmatch(pattern, rest)
+    if not values: stop("unbekanntes APT-Versionsformat")
+    old, new = values.groups()
+    if op == "Inst":
+        if package in inst: stop("doppelte Installation im Plan")
+        inst[package] = (old, new)
+    else:
+        if package in conf or package not in inst or inst[package][1] != new:
+            stop("ungeklärte Konfiguration oder anhängiger Trigger")
+        conf.add(package)
+if counts is None or counts[2] != 0 or conf != set(inst):
+    stop("APT-Plan unvollständig oder nicht auswertbar")
+if (sum(old is not None for old, new in inst.values()), sum(old is None for old, new in inst.values())) != counts[:2]:
+    stop("APT-Zählung passt nicht zu den Aktionen")
+for package, (old, new) in inst.items():
+    print("PLAN", package, "Änderung" if old else "Neuinstallation", new)
+print("Simulation strukturell geprüft; KEINE Installationsfreigabe.")
+print("Kandidatenskripte, Trigger, Quellen/Pins und Paralleländerungen bleiben vor realen Transaktionen zu klären.")
+'
+)
+
+bsp_activate_holds() (
+    local before after package
+    local -a missing=()
+    # Absichtlich keine Freigabe per Umgebungsvariable oder normalem Laborlauf.
+    if [[ $BSP_HOLDS_APPROVED != yes ]]; then
+        printf 'B2-Holds nicht freigegeben. Keine Paketmarkierung geändert.\n' >&2
+        return 2
+    fi
+    bsp_check_baseline || return 1
+    before=$(env -u APT_CONFIG apt-mark showhold 2>/dev/null) || return 1
+    for package in "${BSP_PACKAGES[@]}"; do
+        if ! grep -qxF -e "$package" -e "$package:arm64" <<< "$before"; then
+            missing+=("$package")
+        fi
+    done
+    if (( ${#missing[@]} )); then
+        if ! env -u APT_CONFIG apt-mark hold -- "${missing[@]}" >/dev/null 2>&1; then
+            printf 'B2-Hold-Schritt fehlgeschlagen; mögliche Teilmarkierungen prüfen, kein automatisches unhold.\n' >&2
+            return 1
+        fi
+    fi
+    after=$(env -u APT_CONFIG apt-mark showhold 2>/dev/null) || return 1
+    while IFS= read -r package; do
+        [[ -z $package ]] || grep -qxF -- "$package" <<< "$after" || {
+            printf 'B2: vorhandener Hold nach Prüfung nicht bestätigt.\n' >&2; return 1;
+        }
+    done <<< "$before"
+    for package in "${BSP_PACKAGES[@]}"; do
+        grep -qxF -e "$package" -e "$package:arm64" <<< "$after" || return 1
+    done
+    printf 'B2: alle 15 vorgeschlagenen Holds bestätigt, frühere Holds erhalten.\n'
+)
+# Ende B2. Keine dieser Funktionen wird durch labor aufgerufen.
 
 check_project_directory() {
     local path=$1 owner=$2 actual
@@ -327,6 +495,25 @@ except Exception:
     printf 'Diagnose am Gateway: sudo docker logs --tail 30 %s\n' "$container" >&2
     return 1
 )
+
+# Erst nach erfolgreicher Aktivierung UND Neustartabnahme beider Gateways freigeben.
+readonly C1_IN_LAB_APPROVED=no
+c1_run() (
+    local script_dir
+    script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || return 1
+    /usr/bin/python3 -I -B "$script_dir/c1_network.py" "$@"
+)
+
+case $1 in
+    bsp-plan) shift; bsp_simulate_install "$@"; exit $? ;;
+    bsp-holds) bsp_activate_holds; exit $? ;;
+    c1-install) c1_run install; exit $? ;;
+    c1-status) c1_run status; exit $? ;;
+esac
+
+if [[ $C1_IN_LAB_APPROVED == yes ]]; then
+    c1_run install || exit $?
+fi
 
 printf 'Friedrich Automation – Labor-Installer\n\nSystem und BSP\n'
 os_id=$(os_field ID)
